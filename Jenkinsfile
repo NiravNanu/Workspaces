@@ -14,12 +14,12 @@ pipeline {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws-credentials-id', // Reference to the AWS credentials stored in Jenkins
+                    credentialsId: 'aws-credentials-id',
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
                     script {
-                        env.AWS_REGION = 'us-east-1' // Set AWS region as an environment variable if necessary
+                        env.AWS_REGION = 'us-east-1' // Set AWS region as an environment variable
                     }
                 }
             }
@@ -28,16 +28,18 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    dir("${params.ENV}") { // Switch to the selected environment directory
-                        checkout scm // Checkout the source code from your repository
-                        withEnv([
-                            "AWS_ACCESS_KEY_ID=${env.AWS_ACCESS_KEY_ID}",
-                            "AWS_SECRET_ACCESS_KEY=${env.AWS_SECRET_ACCESS_KEY}",
-                            "AWS_REGION=${env.AWS_REGION}"
-                        ]) {
-                            // Execute Terraform commands with AWS credentials from Jenkins credentials store
-                            sh 'terraform init'
-                            sh 'terraform apply -auto-approve'
+                    dir("${params.ENV}") {
+                        checkout scm
+                        withEnv(["AWS_REGION=${env.AWS_REGION}"]) {
+                            withCredentials([[
+                                $class: 'AmazonWebServicesCredentialsBinding',
+                                credentialsId: 'aws-credentials-id',
+                                accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                                secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                            ]]) {
+                                sh 'terraform init'
+                                sh 'terraform apply -auto-approve'
+                            }
                         }
                     }
                 }
